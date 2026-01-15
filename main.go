@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/nsf/termbox-go"
 	"log"
+
+	"github.com/nsf/termbox-go"
 )
 
 type Editor struct {
@@ -11,8 +12,21 @@ type Editor struct {
 } 
 
 var edit = Editor{
-	lines: []]string{""}  
+	lines: []string{""},
 } 
+
+func draw() {
+	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
+
+	for y, line := range edit.lines {
+		for x, char := range line {
+			termbox.SetCell(x, y, char, termbox.ColorWhite, termbox.ColorDefault)
+		}
+	}
+
+	termbox.SetCursor(edit.curX, edit.curY)
+	termbox.Flush() 
+}
 
 func main() {
 	err := termbox.Init()
@@ -22,8 +36,7 @@ func main() {
 	defer termbox.Close()
 
 	for {
-		termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
-		termbox.Flush()
+		draw() 
 
 		switch ev := termbox.PollEvent(); ev.Type {
 			case termbox.EventKey:
