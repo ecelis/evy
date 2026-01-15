@@ -5,6 +5,15 @@ import (
 	"log"
 )
 
+type Editor struct {
+	lines []string
+	curX, curY int
+} 
+
+var edit = Editor{
+	lines: []]string{""}  
+} 
+
 func main() {
 	err := termbox.Init()
 	if err != nil {
