@@ -52,6 +52,48 @@ func draw() {
 	termbox.Flush() 
 }
 
+func handleKey(ev termbox.Event) {
+	switch ev.Key {
+		case termbox.KeyEsc:
+			termbox.Close()
+			log.Fatal("User exited")
+		case termbox.KeyArrowLeft:
+			if edit.curC > 0  {edit.curC--}
+		case termbox.KeyArrowRight:
+			if edit.curC < len(edit.lines[edit.curL] ) {edit.curC++}
+		case termbox.KeyArrowUp:
+			if edit.curL > 0 {edit.curL--}
+		case termbox.KeyArrowDown:
+			if edit.curL < len(edit.lines)-1 {edit.curL++}
+		case termbox.KeyEnter:
+			car := edit.lines[edit.curL][:edit.curC]
+			cdr := edit.lines[edit.curL][edit.curC:]
+			edit.lines[edit.curL] = car
+			rest := append([]string{cdr}, edit.lines[edit.curL+1:]...)
+			edit.lines = append(edit.lines[:edit.curL+1], rest...)
+			edit.curL++
+			edit.curC = 0
+		case termbox.KeyBackspace, termbox.KeyBackspace2:
+			if edit.curC > 0 {
+				line := edit.lines[edit.curL]
+				edit.lines[edit.curL] = line[:edit.curC-1] + line[edit.curC:]
+				edit.curC--
+			} else if edit.curL > 0 {
+				prevLlen := len(edit.lines[edit.curL-1])
+				edit.lines[edit.curL-1] += edit.lines[edit.curL]
+				edit.lines = append(edit.lines[:edit.curL], edit.lines[edit.curL+1:]...)
+				edit.curL--
+				edit.curC = prevLlen
+			} 
+		default:
+			if ev.Ch != 0 {
+				line := edit.lines[edit.curL]
+				edit.lines[edit.curL] = line[:edit.curC] + string(ev.Ch) + line[edit.curC:]
+				edit.curC++
+			} 
+	} 
+} 
+
 func main() {
 	err := termbox.Init()
 	if err != nil {
@@ -64,29 +106,7 @@ func main() {
 
 		switch ev := termbox.PollEvent(); ev.Type {
 			case termbox.EventKey:
-				if ev.Key == termbox.KeyEsc {
-					return
-				} else if ev.Key == termbox.KeyArrowLeft && edit.curC > 0 {
-					edit.curC--
-				} else if ev.Key == termbox.KeyArrowRight && edit.curC < len(edit.lines[edit.curL])  {
-					edit.curC++
-				} else if ev.Key == termbox.KeyEnter {
-					if edit.curC <= len(edit.lines[edit.curL]) {
-						car := edit.lines[edit.curL][:edit.curC]
-						cdr := edit.lines[edit.curL][edit.curC:]
-						edit.lines[edit.curL] = car 
-						newLines := append([]string{cdr}, edit.lines[edit.curL+1:]...) 
-						edit.lines = append(edit.lines[:edit.curL+1] , newLines...) 
-					} else {  
-						edit.lines = append(edit.lines, "") 
-					}
-					edit.curL++
-					edit.curC = 0
-				} else if ev.Ch != 0 {
-					line := edit.lines[edit.curL]
-					edit.lines[edit.curL] = line[:edit.curC] + string(ev.Ch) + line[edit.curC:]    
-					edit.curC++
-				} 
+				handleKey(ev) 
 			case termbox.EventError:
 				log.Fatal(ev.Err) 
 		}  
