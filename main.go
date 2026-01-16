@@ -32,7 +32,7 @@ import (
 
 type Editor struct {
 	lines []string
-	curX, curY int
+	curL, curC int
 } 
 
 var edit = Editor{
@@ -42,13 +42,13 @@ var edit = Editor{
 func draw() {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 
-	for y, line := range edit.lines {
-		for x, char := range line {
-			termbox.SetCell(x, y, char, termbox.ColorWhite, termbox.ColorDefault)
+	for l, line := range edit.lines {
+		for c, char := range line {
+			termbox.SetCell(c, l, char, termbox.ColorWhite, termbox.ColorDefault)
 		}
 	}
 
-	termbox.SetCursor(edit.curX, edit.curY)
+	termbox.SetCursor(edit.curC, edit.curL)
 	termbox.Flush() 
 }
 
@@ -66,7 +66,27 @@ func main() {
 			case termbox.EventKey:
 				if ev.Key == termbox.KeyEsc {
 					return
-				}
+				} else if ev.Key == termbox.KeyArrowLeft && edit.curC > 0 {
+					edit.curC--
+				} else if ev.Key == termbox.KeyArrowRight && edit.curC < len(edit.lines[edit.curL])  {
+					edit.curC++
+				} else if ev.Key == termbox.KeyEnter {
+					if edit.curC <= len(edit.lines[edit.curL]) {
+						car := edit.lines[edit.curL][:edit.curC]
+						cdr := edit.lines[edit.curL][edit.curC:]
+						edit.lines[edit.curL] = car 
+						newLines := append([]string{cdr}, edit.lines[edit.curL+1:]...) 
+						edit.lines = append(edit.lines[:edit.curL+1] , newLines...) 
+					} else {  
+						edit.lines = append(edit.lines, "") 
+					}
+					edit.curL++
+					edit.curC = 0
+				} else if ev.Ch != 0 {
+					line := edit.lines[edit.curL]
+					edit.lines[edit.curL] = line[:edit.curC] + string(ev.Ch) + line[edit.curC:]    
+					edit.curC++
+				} 
 			case termbox.EventError:
 				log.Fatal(ev.Err) 
 		}  
