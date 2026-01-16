@@ -48,12 +48,22 @@ var edit = Editor{
 
 func draw() {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
+	_, h := termbox.Size() 
 
 	for l, line := range edit.lines {
 		for c, char := range line {
 			termbox.SetCell(c, l, char, termbox.ColorWhite, termbox.ColorDefault)
 		}
 	}
+
+	status := "-- NORMAL --" 
+	if edit.mode == ModeInsert {
+		status = "-- INSERT --" 
+	}
+	
+	for c, char := range status {
+		termbox.SetCell(c, h-1, char, termbox.ColorBlack, termbox.ColorWhite) 
+	} 
 
 	termbox.SetCursor(edit.curC, edit.curL)
 	termbox.Flush() 
