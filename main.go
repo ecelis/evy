@@ -33,11 +33,18 @@ import (
 type Editor struct {
 	lines []string
 	curL, curC int
+	mode int
 } 
+
+const (
+	ModeNormal = iota
+	ModeInsert
+) 
 
 var edit = Editor{
 	lines: []string{""},
-} 
+	mode: ModeNormal,
+}
 
 func draw() {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
@@ -53,10 +60,17 @@ func draw() {
 }
 
 func handleKey(ev termbox.Event) {
+	if edit.mode == ModeInsert {
+		handleInsertMode(ev) 
+	} else {
+		handleNormalMode(ev)
+	} 
+} 
+
+func handleInsertMode(ev termbox.Event) {
 	switch ev.Key {
 		case termbox.KeyEsc:
-			termbox.Close()
-			log.Fatal("User exited")
+			edit.mode = ModeNormal
 		case termbox.KeyArrowLeft:
 			if edit.curC > 0  {edit.curC--}
 		case termbox.KeyArrowRight:
@@ -92,7 +106,32 @@ func handleKey(ev termbox.Event) {
 				edit.curC++
 			} 
 	} 
-} 
+}
+
+func handleNormalMode(ev termbox.Event) {
+	switch ev.Ch {
+		case 'i':  
+			edit.mode = ModeInsert
+		case 'h':
+			if edit.curC > 0 {edit.curC--} 
+		case 'j':
+			if edit.curL < len(edit.lines) - 1 {edit.curL++} 
+		case 'k':
+			if edit.curL > 0 {edit.curL--} 
+		case 'l':
+			if edit.curC < len(edit.lines[edit.curL]) {edit.curC++}  
+		case 'o':
+			edit.lines = append(edit.lines[:edit.curL+1], append([]string{""}, edit.lines[edit.curL+1:]...)...) 
+			edit.curL++
+			edit.curC = 0
+			edit.mode = ModeInsert
+		case 'x':
+			line := edit.lines[edit.curL]
+			if len(line) > 0 && edit.curC < len(line) {
+				edit.lines[edit.curL] = line[:edit.curC] + line[edit.curC+1:]   
+			}
+	}
+}
 
 func main() {
 	err := termbox.Init()
