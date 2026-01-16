@@ -34,11 +34,14 @@ type Editor struct {
 	lines []string
 	curL, curC int
 	mode int
+	vOffset int
+	commandLine string
 } 
 
 const (
 	ModeNormal = iota
 	ModeInsert
+	ModeCommand
 ) 
 
 var edit = Editor{
@@ -49,11 +52,16 @@ var edit = Editor{
 func draw() {
 	edit.normalizeCursor() 
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
-	_, h := termbox.Size() 
+	w, h := termbox.Size() 
 
-	for l, line := range edit.lines {
-		for c, char := range line {
-			termbox.SetCell(c, l, char, termbox.ColorWhite, termbox.ColorDefault)
+	for l := 0; l < h-1; l++ {
+		lineIdx := l + edit.vOffset
+		if lineIdx < len(edit.lines) {
+			for c, char := range edit.lines[lineIdx] {
+				if c < w {
+					termbox.SetCell(c, l, char, termbox.ColorWhite, termbox.ColorDefault)
+				}
+			}
 		}
 	}
 
@@ -158,7 +166,16 @@ func (e *Editor) normalizeCursor() {
 	if e.curC > curLlen {
 		e.curC = curLlen
 	}
-}  
+	
+	_, termHeight := termbox.Size()
+	textHeight := termHeight - 1
+	if e.curL >= e.vOffset + textHeight {
+		e.vOffset = e.curL - textHeight + 1
+	}
+	if e.curL < e.vOffset {
+		e.vOffset = e.curL
+	} 
+}
 
 func main() {
 	err := termbox.Init()
