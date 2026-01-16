@@ -26,6 +26,8 @@ package main
 
 import (
 	"log"
+	"os"
+	"strings"
 
 	"github.com/nsf/termbox-go"
 )
@@ -65,23 +67,56 @@ func draw() {
 		}
 	}
 
-	status := "-- NORMAL --" 
-	if edit.mode == ModeInsert {
-		status = "-- INSERT --" 
-	}
-	
-	for c, char := range status {
-		termbox.SetCell(c, h-1, char, termbox.ColorBlack, termbox.ColorWhite) 
-	} 
+	if edit.mode == ModeCommand {
+		cmdStr := ":" + edit.commandLine
+		for c, char := range cmdStr {
+			termbox.SetCell(c, h-1, char, termbox.ColorDefault, termbox.ColorDefault) 
+		}
+		termbox.SetCursor(len(cmdStr), h-1) 
+	} else { 
 
-	termbox.SetCursor(edit.curC, edit.curL)
+		status := "-- NORMAL --" 
+		if edit.mode == ModeInsert {
+			status = "-- INSERT --" 
+		}
+		
+		for c, char := range status {
+			termbox.SetCell(c, h-1, char, termbox.ColorBlack, termbox.ColorWhite) 
+		} 
+
+		termbox.SetCursor(edit.curC, edit.curL)
+	}
 	termbox.Flush() 
+}
+
+func executeCommand() {
+	parts := strings.Split(edit.commandLine, " ") 
+	cmd := parts[0]
+
+	switch cmd {
+		case "q":
+			termbox.Close()
+			os.Exit(0)
+		case "w":
+			filename := ".swapfile"
+			if len(parts) > 1 {
+				filename = parts[1] 
+			}
+			content := strings.Join(edit.lines, "\n")
+			_ = os.WriteFile(filename, []byte(content), 0644)
+		case "wq":
+			executeCommand()
+			termbox.Close()
+			os.Exit(0) 
+	} 
 }
 
 func handleKey(ev termbox.Event) {
 	if edit.mode == ModeInsert {
 		handleInsertMode(ev) 
-	} else {
+	} else if edit.mode == ModeCommand {
+		handleCommandMode(ev) 
+	} else { 
 		handleNormalMode(ev)
 	} 
 } 
@@ -149,8 +184,31 @@ func handleNormalMode(ev termbox.Event) {
 			if len(line) > 0 && edit.curC < len(line) {
 				edit.lines[edit.curL] = line[:edit.curC] + line[edit.curC+1:]   
 			}
+		case ':':
+			edit.mode = ModeCommand
+			edit.commandLine = "" 
 	}
 }
+
+func handleCommandMode(ev termbox.Event) {
+	switch ev.Key {
+	case termbox.KeyEsc:
+		edit.mode = ModeNormal
+	case termbox.KeyEnter:
+		executeCommand()
+		edit.mode = ModeNormal
+	case termbox.KeyBackspace, termbox.KeyBackspace2:
+		if len(edit.commandLine) > 0 { 
+			edit.commandLine = edit.commandLine[:len(edit.commandLine)-1] 
+		} else {
+			edit.mode = ModeNormal
+		} 
+	default:
+		if ev.Ch != 0 {
+			edit.commandLine += string(ev.Ch) 
+		} 
+	} 
+}  
 
 func (e *Editor) normalizeCursor() {
 	if e.curL < 0 {
