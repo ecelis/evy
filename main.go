@@ -47,6 +47,7 @@ var edit = Editor{
 }
 
 func draw() {
+	edit.normalizeCursor() 
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	_, h := termbox.Size() 
 
@@ -142,6 +143,22 @@ func handleNormalMode(ev termbox.Event) {
 			}
 	}
 }
+
+func (e *Editor) normalizeCursor() {
+	if e.curL < 0 {
+		e.curL = 0
+	} 
+	if e.curL >= len(e.lines) {
+		e.curL = len(e.lines) - 1 
+	}
+	if e.curC < 0 {
+		e.curC = 0
+	}
+	curLlen := len(e.lines[e.curL])
+	if e.curC > curLlen {
+		e.curC = curLlen
+	}
+}  
 
 func main() {
 	err := termbox.Init()
