@@ -165,6 +165,12 @@ func handleInsertMode(ev termbox.Event) {
 		line := edit.lines[edit.curL]
 		edit.lines[edit.curL] = line[:edit.curC] + " " + line[edit.curC:]
 		edit.curC++
+	case termbox.KeyTab:
+		//for i := 0; i < 4; i++ { 
+			line := edit.lines[edit.curL]
+			edit.lines[edit.curL] = line[:edit.curC] + "\t" + line[edit.curC:]
+			edit.curC++
+		//}
 	default:
 		if ev.Ch != 0 {
 			line := edit.lines[edit.curL]
