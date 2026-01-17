@@ -33,28 +33,28 @@ import (
 )
 
 type Editor struct {
-	lines []string
-	curL, curC int
-	mode int
-	vOffset int
+	lines       []string
+	curL, curC  int
+	mode        int
+	vOffset     int
 	commandLine string
-} 
+}
 
 const (
 	ModeNormal = iota
 	ModeInsert
 	ModeCommand
-) 
+)
 
 var edit = Editor{
 	lines: []string{""},
-	mode: ModeNormal,
+	mode:  ModeNormal,
 }
 
 func draw() {
-	edit.normalizeCursor() 
+	edit.normalizeCursor()
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
-	w, h := termbox.Size() 
+	w, h := termbox.Size()
 
 	for l := 0; l < h-1; l++ {
 		lineIdx := l + edit.vOffset
@@ -70,134 +70,162 @@ func draw() {
 	if edit.mode == ModeCommand {
 		cmdStr := ":" + edit.commandLine
 		for c, char := range cmdStr {
-			termbox.SetCell(c, h-1, char, termbox.ColorDefault, termbox.ColorDefault) 
+			termbox.SetCell(c, h-1, char, termbox.ColorDefault, termbox.ColorDefault)
 		}
-		termbox.SetCursor(len(cmdStr), h-1) 
-	} else { 
+		termbox.SetCursor(len(cmdStr), h-1)
+	} else {
 
-		status := "-- NORMAL --" 
+		status := "-- NORMAL --"
 		if edit.mode == ModeInsert {
-			status = "-- INSERT --" 
+			status = "-- INSERT --"
 		}
-		
+
 		for c, char := range status {
-			termbox.SetCell(c, h-1, char, termbox.ColorBlack, termbox.ColorWhite) 
-		} 
+			termbox.SetCell(c, h-1, char, termbox.ColorBlack, termbox.ColorWhite)
+		}
 
 		termbox.SetCursor(edit.curC, edit.curL)
 	}
-	termbox.Flush() 
+	termbox.Flush()
 }
 
 func executeCommand() {
-	parts := strings.Split(edit.commandLine, " ") 
+	parts := strings.Split(edit.commandLine, " ")
 	cmd := parts[0]
 
 	switch cmd {
-		case "q":
-			termbox.Close()
-			os.Exit(0)
-		case "w":
-			filename := ".swapfile"
-			if len(parts) > 1 {
-				filename = parts[1] 
-			}
-			content := strings.Join(edit.lines, "\n")
-			_ = os.WriteFile(filename, []byte(content), 0644)
-		case "wq":
-			executeCommand()
-			termbox.Close()
-			os.Exit(0) 
-	} 
+	case "q":
+		termbox.Close()
+		os.Exit(0)
+	case "w":
+		filename := ".swapfile"
+		if len(parts) > 1 {
+			filename = parts[1]
+		}
+		content := strings.Join(edit.lines, "\n")
+		_ = os.WriteFile(filename, []byte(content), 0644)
+	case "wq":
+		executeCommand()
+		termbox.Close()
+		os.Exit(0)
+	}
 }
 
 func handleKey(ev termbox.Event) {
 	if edit.mode == ModeInsert {
-		handleInsertMode(ev) 
+		handleInsertMode(ev)
 	} else if edit.mode == ModeCommand {
-		handleCommandMode(ev) 
-	} else { 
+		handleCommandMode(ev)
+	} else {
 		handleNormalMode(ev)
-	} 
-} 
+	}
+}
 
 func handleInsertMode(ev termbox.Event) {
 	switch ev.Key {
-		case termbox.KeyEsc:
-			edit.mode = ModeNormal
-		case termbox.KeyArrowLeft:
-			if edit.curC > 0  {edit.curC--}
-		case termbox.KeyArrowRight:
-			if edit.curC < len(edit.lines[edit.curL] ) {edit.curC++}
-		case termbox.KeyArrowUp:
-			if edit.curL > 0 {edit.curL--}
-		case termbox.KeyArrowDown:
-			if edit.curL < len(edit.lines)-1 {edit.curL++}
-		case termbox.KeyEnter:
-			car := edit.lines[edit.curL][:edit.curC]
-			cdr := edit.lines[edit.curL][edit.curC:]
-			edit.lines[edit.curL] = car
-			rest := append([]string{cdr}, edit.lines[edit.curL+1:]...)
-			edit.lines = append(edit.lines[:edit.curL+1], rest...)
+	case termbox.KeyEsc:
+		edit.mode = ModeNormal
+	case termbox.KeyArrowLeft:
+		if edit.curC > 0 {
+			edit.curC--
+		}
+	case termbox.KeyArrowRight:
+		if edit.curC < len(edit.lines[edit.curL]) {
+			edit.curC++
+		}
+	case termbox.KeyArrowUp:
+		if edit.curL > 0 {
+			edit.curL--
+		}
+	case termbox.KeyArrowDown:
+		if edit.curL < len(edit.lines)-1 {
 			edit.curL++
-			edit.curC = 0
-		case termbox.KeyBackspace, termbox.KeyBackspace2:
-			if edit.curC > 0 {
-				line := edit.lines[edit.curL]
-				edit.lines[edit.curL] = line[:edit.curC-1] + line[edit.curC:]
-				edit.curC--
-			} else if edit.curL > 0 {
-				prevLlen := len(edit.lines[edit.curL-1])
-				edit.lines[edit.curL-1] += edit.lines[edit.curL]
-				edit.lines = append(edit.lines[:edit.curL], edit.lines[edit.curL+1:]...)
-				edit.curL--
-				edit.curC = prevLlen
-			} 
-		default:
-			if ev.Ch != 0 {
-				line := edit.lines[edit.curL]
-				edit.lines[edit.curL] = line[:edit.curC] + string(ev.Ch) + line[edit.curC:]
-				edit.curC++
-			} 
-	} 
+		}
+	case termbox.KeyEnter:
+		car := edit.lines[edit.curL][:edit.curC]
+		cdr := edit.lines[edit.curL][edit.curC:]
+		edit.lines[edit.curL] = car
+		rest := append([]string{cdr}, edit.lines[edit.curL+1:]...)
+		edit.lines = append(edit.lines[:edit.curL+1], rest...)
+		edit.curL++
+		edit.curC = 0
+	case termbox.KeyBackspace, termbox.KeyBackspace2:
+		if edit.curC > 0 {
+			line := edit.lines[edit.curL]
+			edit.lines[edit.curL] = line[:edit.curC-1] + line[edit.curC:]
+			edit.curC--
+		} else if edit.curL > 0 {
+			prevLlen := len(edit.lines[edit.curL-1])
+			edit.lines[edit.curL-1] += edit.lines[edit.curL]
+			edit.lines = append(edit.lines[:edit.curL], edit.lines[edit.curL+1:]...)
+			edit.curL--
+			edit.curC = prevLlen
+		}
+	case termbox.KeySpace:
+		line := edit.lines[edit.curL]
+		edit.lines[edit.curL] = line[:edit.curC] + " " + line[edit.curC:]
+		edit.curC++
+	default:
+		if ev.Ch != 0 {
+			line := edit.lines[edit.curL]
+			edit.lines[edit.curL] = line[:edit.curC] + string(ev.Ch) + line[edit.curC:]
+			edit.curC++
+		}
+	}
 }
 
 func handleNormalMode(ev termbox.Event) {
 	switch ev.Key {
-		case termbox.KeyArrowLeft:
-			if edit.curC > 0 {edit.curC--} 
-		case termbox.KeyArrowDown:
-			if edit.curL < len(edit.lines) - 1 {edit.curL++} 
-		case termbox.KeyArrowUp:
-			if edit.curL > 0 {edit.curL--} 
-		case termbox.KeyArrowRight:
-			if edit.curC < len(edit.lines[edit.curL]) {edit.curC++}  
-
-	} 
-	switch ev.Ch {
-		case 'i':  
-			edit.mode = ModeInsert
-		case 'h':
-			if edit.curC > 0 {edit.curC--} 
-		case 'j':
-			if edit.curL < len(edit.lines) - 1 {edit.curL++} 
-		case 'k':
-			if edit.curL > 0 {edit.curL--} 
-		case 'l':
-			if edit.curC < len(edit.lines[edit.curL]) {edit.curC++}  
-		case 'o':
-			edit.lines = append(edit.lines[:edit.curL+1], append([]string{""}, edit.lines[edit.curL+1:]...)...) 
+	case termbox.KeyArrowLeft:
+		if edit.curC > 0 {
+			edit.curC--
+		}
+	case termbox.KeyArrowDown:
+		if edit.curL < len(edit.lines)-1 {
 			edit.curL++
-			edit.curC = 0
-			edit.mode = ModeInsert
-		case 'x':
-			line := edit.lines[edit.curL]
-			if len(line) > 0 && edit.curC < len(line) {
-				edit.lines[edit.curL] = line[:edit.curC] + line[edit.curC+1:]   
-			}
-		case ':':
-			edit.mode = ModeCommand
-			edit.commandLine = "" 
+		}
+	case termbox.KeyArrowUp:
+		if edit.curL > 0 {
+			edit.curL--
+		}
+	case termbox.KeyArrowRight:
+		if edit.curC < len(edit.lines[edit.curL]) {
+			edit.curC++
+		}
+
+	}
+	switch ev.Ch {
+	case 'i':
+		edit.mode = ModeInsert
+	case 'h':
+		if edit.curC > 0 {
+			edit.curC--
+		}
+	case 'j':
+		if edit.curL < len(edit.lines)-1 {
+			edit.curL++
+		}
+	case 'k':
+		if edit.curL > 0 {
+			edit.curL--
+		}
+	case 'l':
+		if edit.curC < len(edit.lines[edit.curL]) {
+			edit.curC++
+		}
+	case 'o':
+		edit.lines = append(edit.lines[:edit.curL+1], append([]string{""}, edit.lines[edit.curL+1:]...)...)
+		edit.curL++
+		edit.curC = 0
+		edit.mode = ModeInsert
+	case 'x':
+		line := edit.lines[edit.curL]
+		if len(line) > 0 && edit.curC < len(line) {
+			edit.lines[edit.curL] = line[:edit.curC] + line[edit.curC+1:]
+		}
+	case ':':
+		edit.mode = ModeCommand
+		edit.commandLine = ""
 	}
 }
 
@@ -209,24 +237,24 @@ func handleCommandMode(ev termbox.Event) {
 		executeCommand()
 		edit.mode = ModeNormal
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
-		if len(edit.commandLine) > 0 { 
-			edit.commandLine = edit.commandLine[:len(edit.commandLine)-1] 
+		if len(edit.commandLine) > 0 {
+			edit.commandLine = edit.commandLine[:len(edit.commandLine)-1]
 		} else {
 			edit.mode = ModeNormal
-		} 
+		}
 	default:
 		if ev.Ch != 0 {
-			edit.commandLine += string(ev.Ch) 
-		} 
-	} 
-}  
+			edit.commandLine += string(ev.Ch)
+		}
+	}
+}
 
 func (e *Editor) normalizeCursor() {
 	if e.curL < 0 {
 		e.curL = 0
-	} 
+	}
 	if e.curL >= len(e.lines) {
-		e.curL = len(e.lines) - 1 
+		e.curL = len(e.lines) - 1
 	}
 	if e.curC < 0 {
 		e.curC = 0
@@ -235,15 +263,15 @@ func (e *Editor) normalizeCursor() {
 	if e.curC > curLlen {
 		e.curC = curLlen
 	}
-	
+
 	_, termHeight := termbox.Size()
 	textHeight := termHeight - 1
-	if e.curL >= e.vOffset + textHeight {
+	if e.curL >= e.vOffset+textHeight {
 		e.vOffset = e.curL - textHeight + 1
 	}
 	if e.curL < e.vOffset {
 		e.vOffset = e.curL
-	} 
+	}
 }
 
 func main() {
@@ -254,13 +282,13 @@ func main() {
 	defer termbox.Close()
 
 	for {
-		draw() 
+		draw()
 
 		switch ev := termbox.PollEvent(); ev.Type {
-			case termbox.EventKey:
-				handleKey(ev) 
-			case termbox.EventError:
-				log.Fatal(ev.Err) 
-		}  
-	} 
+		case termbox.EventKey:
+			handleKey(ev)
+		case termbox.EventError:
+			log.Fatal(ev.Err)
+		}
+	}
 }
