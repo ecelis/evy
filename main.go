@@ -25,6 +25,7 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"os"
 	"strings"
@@ -280,12 +281,35 @@ func (e *Editor) normalizeCursor() {
 	}
 }
 
+func (e *Editor) readFile(filename string) {
+	file, err := os.Open(filename)
+	if err != nil {
+		e.lines = []string{""}
+		return
+	}
+	defer file.Close() 
+
+	var lines []string
+	scanner := bufio.NewScanner(file) 
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text()) 
+	}
+	if len(lines) == 0 {
+		lines = append(lines, "") 
+	}
+	e.lines = lines
+}   
+
 func main() {
 	err := termbox.Init()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer termbox.Close()
+
+	if len(os.Args) > 1 {
+		edit.readFile(os.Args[1]) 
+	}
 
 	for {
 		draw()
