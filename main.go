@@ -163,6 +163,17 @@ func handleInsertMode(ev termbox.Event) {
 }
 
 func handleNormalMode(ev termbox.Event) {
+	switch ev.Key {
+		case termbox.KeyArrowLeft:
+			if edit.curC > 0 {edit.curC--} 
+		case termbox.KeyArrowDown:
+			if edit.curL < len(edit.lines) - 1 {edit.curL++} 
+		case termbox.KeyArrowUp:
+			if edit.curL > 0 {edit.curL--} 
+		case termbox.KeyArrowRight:
+			if edit.curC < len(edit.lines[edit.curL]) {edit.curC++}  
+
+	} 
 	switch ev.Ch {
 		case 'i':  
 			edit.mode = ModeInsert
